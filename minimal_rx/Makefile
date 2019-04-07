@@ -2,10 +2,10 @@
 # Copyright(c) 2010-2014 Intel Corporation
 
 # binary name
-APP = minimal_tx
+APP = minimal_rx
 
 # all source are stored in SRCS-y
-SRCS-y := minimal_tx.c
+SRCS-y := minimal_rx.c
 
 # Build using pkg-config variables if possible
 $(shell pkg-config --exists libdpdk)
