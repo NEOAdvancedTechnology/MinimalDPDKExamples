@@ -15,7 +15,7 @@
 #include <rte_mbuf.h>
 
 #define RX_RING_SIZE 1024
-#define TX_RING_SIZE 1024
+#define TX_RING_SIZE 0 
 
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
@@ -26,22 +26,6 @@ static const struct rte_eth_conf port_conf_default = {
 		.max_rx_pkt_len = ETHER_MAX_LEN,
 	},
 };
-
-void print_time()
-{
-	time_t     now;
-	struct tm *ts;
-	char       buf[80];
-
-	/* Get the current time */
-	now = time(NULL);
-
-	/* Format and print the time, "ddd yyyy-mm-dd hh:mm:ss zzz" */
-	ts = localtime(&now);
-	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ts);
-
-	printf("%s,",buf);
-}
 
 void DumpHex(const void* data, size_t size) {
 	char ascii[17];
@@ -80,21 +64,14 @@ static inline int
 port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 {
 	struct rte_eth_conf port_conf = port_conf_default;
-	const uint16_t rx_rings = 1, tx_rings = 1;
+	const uint16_t rx_rings = 1, tx_rings = 0;
 	uint16_t nb_rxd = RX_RING_SIZE;
 	uint16_t nb_txd = TX_RING_SIZE;
 	int retval;
 	uint16_t q;
-	struct rte_eth_dev_info dev_info;
-	struct rte_eth_txconf txconf;
 
 	if (!rte_eth_dev_is_valid_port(port))
 		return -1;
-
-	rte_eth_dev_info_get(port, &dev_info);
-	if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
-		port_conf.txmode.offloads |=
-			DEV_TX_OFFLOAD_MBUF_FAST_FREE;
 
 	/* Configure the Ethernet device. */
 	retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
@@ -109,16 +86,6 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 	for (q = 0; q < rx_rings; q++) {
 		retval = rte_eth_rx_queue_setup(port, q, nb_rxd,
 				rte_eth_dev_socket_id(port), NULL, mbuf_pool);
-		if (retval < 0)
-			return retval;
-	}
-
-	txconf = dev_info.default_txconf;
-	txconf.offloads = port_conf.txmode.offloads;
-	/* Allocate and set up 1 TX queue per Ethernet port. */
-	for (q = 0; q < tx_rings; q++) {
-		retval = rte_eth_tx_queue_setup(port, q, nb_txd,
-				rte_eth_dev_socket_id(port), &txconf);
 		if (retval < 0)
 			return retval;
 	}
@@ -153,8 +120,6 @@ lcore_main(void)
 {
 	uint16_t port;
 	int i;
-	uint this_sn,last_sn=-1; 
-	char *this_packet;
 
 	printf("in lcore_main\n");
 	/*
@@ -192,49 +157,16 @@ lcore_main(void)
 
 			for(i=0;i<nb_rx;++i){
 
-//				printf("----->processing packet %d\n",i);
-//				printf("----->pkt_len=%d\n",bufs[i]->pkt_len);
+				printf("----->processing packet %d\n",i);
+				printf("----->pkt_len=%d\n",bufs[i]->pkt_len);
 //				show Ethernet header
 //				DumpHex(rte_pktmbuf_mtod(bufs[i],struct ether_hdr *),14);
 //				dump whole packet
-//				DumpHex(rte_pktmbuf_mtod(bufs[i],char *),bufs[i]->pkt_len);
-
-				if(bufs[i]->pkt_len == 862){
-
-					this_packet=rte_pktmbuf_mtod(bufs[i],char *);
-
-					this_sn=((this_packet[44] &0xff) << 8 ) | (this_packet[45] & 0xff);
-//					printf("------------->rtp SN=%d\n",this_sn);
-			
-					if((this_sn-last_sn != 1) && (this_sn-last_sn != -32767) &&(last_sn != -1))
-					{
-						print_time();
-						printf("DROP,%d,%d\n",last_sn,this_sn);
-						fflush(stdout);	
-					}	
-					if((this_packet[43] & 0xff) == 0xe0){
-						print_time();
-						printf("MARK\n");
-						fflush(stdout);
-					}
-					last_sn=this_sn;	
-
-				}
-// else {printf("non-862 len packet dropped\n");}
+				DumpHex(rte_pktmbuf_mtod(bufs[i],char *),bufs[i]->pkt_len);
 
 				rte_pktmbuf_free(bufs[i]);
 			}
 
-			/* Send burst of TX packets, to second port of pair. */
-//			const uint16_t nb_tx = rte_eth_tx_burst(port ^ 1, 0,
-//					bufs, nb_rx);
-
-			/* Free any unsent packets. */
-//			if (unlikely(nb_tx < nb_rx)) {
-//				uint16_t buf;
-//				for (buf = nb_tx; buf < nb_rx; buf++)
-//					rte_pktmbuf_free(bufs[buf]);
-//			}
 		}
 	}
 }
@@ -261,9 +193,6 @@ main(int argc, char *argv[])
 	/* Check that there is an even number of ports to send/receive on. */
 	nb_ports = rte_eth_dev_count_avail();
 	printf("rte_eth_dev_count_avail()=%d\n",nb_ports);
-
-//	if (nb_ports < 2 || (nb_ports & 1))
-//		rte_exit(EXIT_FAILURE, "Error: number of ports must be even\n");
 
 	/* Creates a new mempool in memory to hold the mbufs. */
 	mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS * nb_ports,
