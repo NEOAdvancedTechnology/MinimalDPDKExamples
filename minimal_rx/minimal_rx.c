@@ -1,5 +1,5 @@
 // Adapted from: https://github.com/DPDK/dpdk/blob/master/examples/skeleton/basicfwd.c
-// by Thomas Edwards, Fox Networks Engineering & Operations (Disney)
+// by Thomas Edwards, Walt Disney Television
 
 /* SPDX-License-Identifier: BSD-3-Clause
  * Copyright(c) 2010-2015 Intel Corporation
@@ -111,10 +111,7 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 	return 0;
 }
 
-/*
- * The lcore main. This is the main thread that does the work, reading from
- * an input port and writing to an output port.
- */
+// recieve packets
 void rx_packets(void)
 {
 	uint16_t port;
@@ -154,12 +151,7 @@ void rx_packets(void)
 	}
 }
 
-/*
- * The main function, which does initialization and calls the per-lcore
- * functions.
- */
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	struct rte_mempool *mbuf_pool;
 	unsigned nb_ports;
