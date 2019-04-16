@@ -12,6 +12,9 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include <rte_memory.h>
 #include <rte_launch.h>
@@ -32,11 +35,6 @@
 #define UDP_SRC_PORT 6666
 #define UDP_DST_PORT 6666
 
-// fill in with proper addresses
-#define IP_SRC_ADDR ((172U << 24) | (30 << 16) | (0 << 8) | 73)
-#define IP_DST_ADDR ((172U << 24) | (30 << 16) | (0 << 8) | 225)
-#define DEST_MAC 0x0a38caf6f3200000ULL
-
 #define IP_DEFTTL  64   /* from RFC 1340. */
 #define IP_VERSION 0x40
 #define IP_HDRLEN  0x05 /* default IP header length == five 32-bits words. */
@@ -54,6 +52,8 @@
         (uint16_t) ((((cpu_16_v) & 0xFF) << 8) | ((cpu_16_v) >> 8))
 #endif
 
+uint64_t DST_MAC;
+uint32_t IP_SRC_ADDR,IP_DST_ADDR;
 
 static const struct rte_eth_conf port_conf_default = {
         .rxmode = { .max_rx_pkt_len = ETHER_MAX_LEN }
@@ -65,8 +65,44 @@ struct ether_addr my_addr; // SRC MAC address of NIC
 
 struct rte_mempool *mbuf_pool;
 
-static void
-setup_pkt_udp_ip_headers(struct ipv4_hdr *ip_hdr,
+// convert a quad-dot IP string to uint32_t IP address
+uint32_t string_to_ip(char *s) {
+	unsigned char a[4];
+	int rc = sscanf(s, "%d.%d.%d.%d",a+0,a+1,a+2,a+3);	
+	if(rc != 4){
+        	fprintf(stderr, "bad source IP address format. Use like: -s 198.19.111.179\n");
+        	exit(1);
+	}
+	
+	return
+		(uint32_t)(a[0]) << 24 |
+		(uint32_t)(a[1]) << 16 |
+		(uint32_t)(a[2]) << 8 |
+		(uint32_t)(a[3]);
+
+}
+
+// convert six colon separated hex bytes string to uint64_t Ethernet MAC address
+uint64_t string_to_mac(char *s) {
+    unsigned char a[6];
+    int rc = sscanf(s, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+                    a + 0, a + 1, a + 2, a + 3, a + 4, a + 5);
+    if(rc !=6 ){
+	fprintf(stderr, "bad MAC address format. Use like: -m 0a:38:ca:f6:f3:20\n");
+	exit(1);
+    }
+	
+    return
+        (uint64_t)(a[0]) << 40 |
+        (uint64_t)(a[1]) << 32 |
+        (uint64_t)(a[2]) << 24 |
+        (uint64_t)(a[3]) << 16 |
+        (uint64_t)(a[4]) << 8 |
+        (uint64_t)(a[5]);
+}
+
+// setup packet UDP & IP headers
+static void setup_pkt_udp_ip_headers(struct ipv4_hdr *ip_hdr,
                          struct udp_hdr *udp_hdr,
                          uint16_t pkt_data_len)
 {
@@ -113,6 +149,7 @@ setup_pkt_udp_ip_headers(struct ipv4_hdr *ip_hdr,
         ip_hdr->hdr_checksum = (uint16_t) ip_cksum;
 }
 
+// actually send the packet
 static void send_packet()
 {
 	struct rte_mbuf *pkt;
@@ -129,7 +166,7 @@ static void send_packet()
         pkt->data_len = TX_PACKET_LENGTH;
 	
         // set up addresses 
-        dst_eth_addr.as_int=rte_cpu_to_be_64(DEST_MAC);
+        dst_eth_addr.as_int=rte_cpu_to_be_64(DST_MAC);
         ether_addr_copy(&dst_eth_addr,&eth_hdr.d_addr);
         ether_addr_copy(&my_addr, &eth_hdr.s_addr);
         eth_hdr.ether_type = rte_cpu_to_be_16(ETHER_TYPE_IPv4);
@@ -215,14 +252,53 @@ port_init(uint16_t port)
 
 int main(int argc, char **argv)
 {
-	int ret;
+	int ret,c;
 	uint16_t pkt_data_len;
-
+	int mac_flag=0,ip_src_flag=0,ip_dst_flag=0;
+	
 	ret = rte_eal_init(argc, argv);
 	if (ret < 0)
 		rte_panic("Cannot init EAL\n");
 
-       /* Creates a new mempool in memory to hold the mbufs. */
+	argc -= ret;
+	argv += ret;
+
+	while ((c = getopt(argc, argv, "m:s:d:h")) != -1)
+		switch(c) {
+		case 'm':
+			// note, not quite sure why last two bytes are zero, but that is how DPDK likes it
+			DST_MAC=0ULL;
+			DST_MAC=string_to_mac(optarg)<<16;	
+			mac_flag=1;	
+			break;
+		case 's':
+			IP_SRC_ADDR=string_to_ip(optarg);
+			ip_src_flag=1;
+			break;
+                case 'd':
+                        IP_DST_ADDR=string_to_ip(optarg);
+                        ip_dst_flag=1;
+                        break;
+		case 'h':
+			printf("usage -- -m [dst MAC] -s [src IP] -d [dst IP]\n");
+			exit(0);
+			break;
+		}
+
+	if(mac_flag==0) {
+		fprintf(stderr, "missing -m for destination MAC adress\n");
+		exit(1);
+	}
+	if(ip_src_flag==0) {
+                fprintf(stderr, "missing -s for IP source adress\n");
+                exit(1);
+        }
+        if(ip_dst_flag==0) {
+                fprintf(stderr, "missing -d for IP destination adress\n");
+                exit(1);
+        }
+
+        /* Creates a new mempool in memory to hold the mbufs. */
         mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS,
                 MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
 
