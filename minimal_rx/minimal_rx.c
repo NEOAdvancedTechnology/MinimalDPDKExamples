@@ -115,24 +115,10 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
  * The lcore main. This is the main thread that does the work, reading from
  * an input port and writing to an output port.
  */
-static __attribute__((noreturn)) void
-lcore_main(void)
+void rx_packets(void)
 {
 	uint16_t port;
 	int i;
-
-	printf("in lcore_main\n");
-	/*
-	 * Check that the port is on the same NUMA node as the polling thread
-	 * for best performance.
-	 */
-	RTE_ETH_FOREACH_DEV(port)
-		if (rte_eth_dev_socket_id(port) > 0 &&
-				rte_eth_dev_socket_id(port) !=
-						(int)rte_socket_id())
-			printf("WARNING, port %u is on remote NUMA node to "
-					"polling thread.\n\tPerformance will "
-					"not be optimal.\n", port);
 
 	printf("\nCore %u receiving packets. [Ctrl+C to quit]\n",
 			rte_lcore_id());
@@ -153,15 +139,12 @@ lcore_main(void)
 			if (unlikely(nb_rx == 0))
 				continue;
 
-//			printf("received %d packets!\n",nb_rx);
+			printf("received %d packets:\n",nb_rx);
 
 			for(i=0;i<nb_rx;++i){
 
 				printf("----->processing packet %d\n",i);
 				printf("----->pkt_len=%d\n",bufs[i]->pkt_len);
-//				show Ethernet header
-//				DumpHex(rte_pktmbuf_mtod(bufs[i],struct ether_hdr *),14);
-//				dump whole packet
 				DumpHex(rte_pktmbuf_mtod(bufs[i],char *),bufs[i]->pkt_len);
 
 				rte_pktmbuf_free(bufs[i]);
@@ -190,7 +173,6 @@ main(int argc, char *argv[])
 	argc -= ret;
 	argv += ret;
 
-	/* Check that there is an even number of ports to send/receive on. */
 	nb_ports = rte_eth_dev_count_avail();
 	printf("rte_eth_dev_count_avail()=%d\n",nb_ports);
 
@@ -207,11 +189,7 @@ main(int argc, char *argv[])
 			rte_exit(EXIT_FAILURE, "Cannot init port %"PRIu16 "\n",
 					portid);
 
-	if (rte_lcore_count() > 1)
-		printf("\nWARNING: Too many lcores enabled. Only 1 used.\n");
-
-	/* Call lcore_main on the master core only. */
-	lcore_main();
+	rx_packets();
 
 	return 0;
 }
