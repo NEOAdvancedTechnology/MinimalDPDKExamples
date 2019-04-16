@@ -1,6 +1,6 @@
 # Minimal Packet Sender
 
-Sends a single UDP packet on DPDK port 0.
+Sends a single UDP packet from DPDK port 0 to designated destination.
 
 Usage:
 ```
