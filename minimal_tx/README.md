@@ -1,5 +1,7 @@
 # Minimal Packet Sender
 
+Sends a single UDP packet on DPDK port 0.
+
 Usage:
 ```
 minimal_tx -- -m [dst MAC] -s [src IP] -d [dst IP]
