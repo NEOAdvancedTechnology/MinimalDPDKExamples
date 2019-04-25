@@ -130,8 +130,9 @@ hello from core 0
 ```
 
 ### Notes:
-EC2 networking will still route IP packets to the private IP addresses of the DPDK-enabled Network Interfaces as identified in the AWS Console.
+
+For DPDK applications, you may need to know the MAC and IP addresses of the a network interface attached with DPDK.  Since the interface is not visible from `ifconfig` any more, an easy way to do this from the AWS Console under EC2 Instances is to click on the Network Interface of interest (such as `eth1`) where the Private IP Address will be shown, and then click on the Interface ID which will show you the MAC address. 
+
+EC2 networking routes IP packets to the private IP addresses of the DPDK-enabled Network Interfaces as identified in the AWS Console, even if the interface is no longer visible from `ifconfig`.
 
 You can add additional Network Interfaces onto your EC2 instance beyond `eth1` by going to the "Network Interfaces" tab on the AWS Console and clicking on "Create Network Interface", then "attaching" them to your instance.
-
-For DPDK applications, you may need to know the MAC and IP addresses of the a network interface attached with DPDK.  An easy way to do this from the AWS Console under EC2 Instances is to click on the Network Interface of interest (such as `eth1`) where the Private IP Address will be shown, and then click on the Interface ID which will show you the MAC address. 
