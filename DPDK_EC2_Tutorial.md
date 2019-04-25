@@ -87,7 +87,7 @@ Network devices using kernel driver
 0000:00:06.0 'Elastic Network Adapter (ENA) ec20' if=eth1 drv=ena unused=igb_uio 
 ...
 ```		
-17. Bind the DPDK NIC(s) to the `igb_uio`driver using the last part of the PCI "bus:slot.func" address you saw from `dpdk-devbind.py --status`.  Then confirm
+17. Bind the DPDK NIC(s) to the `igb_uio` driver using the last part of the PCI "bus:slot.func" address you saw from `dpdk-devbind.py --status`.  Then confirm
 ```
 # ./usertools/dpdk-devbind.py --bind=igb_uio 00:06.0
 # ./usertools/dpdk-devbind.py --status
@@ -133,3 +133,5 @@ hello from core 0
 EC2 networking will still route IP packets to the private IP addresses of the DPDK-enabled Network Interfaces as identified in the AWS Console.
 
 You can add additional Network Interfaces onto your EC2 instance beyond `eth1` by going to the "Network Interfaces" tab on the AWS Console and clicking on "Create Network Interface", then "attaching" them to your instance.
+
+For DPDK applications, you may need to know the MAC and IP addresses of the a network interface attached with DPDK.  An easy way to do this from the AWS Console under EC2 Instances is to click on the Network Interface of interest (such as `eth1`) where the Private IP Address will be shown, and then click on the Interface ID which will show you the MAC address. 
