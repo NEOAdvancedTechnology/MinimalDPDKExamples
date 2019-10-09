@@ -171,7 +171,7 @@ static void send_packet(void)
 	struct rte_mbuf *pkts_burst[1];
 
 	pkt = rte_mbuf_raw_alloc(mbuf_pool);
-        if(pkt == NULL) {printf("trouble at rte_mbuf_raw_alloc\n");}
+        if(pkt == NULL) {printf("trouble at rte_mbuf_raw_alloc\n"); return;}
         rte_pktmbuf_reset_headroom(pkt);
         pkt->data_len = TX_PACKET_LENGTH;
 	
