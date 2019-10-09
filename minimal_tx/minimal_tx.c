@@ -269,7 +269,7 @@ static void exit_stats(int sig)
 	printf("Total packets: %lu\n", packet_count);
 	printf("Total transmission time: %ld seconds\n", total_time);
 	printf("Average transmission rate: %lu pps\n", packet_count / total_time);
-	printf("                           %lu Gpbs\n", ((packet_count * TX_PACKET_LENGTH * 8) / total_time) / 1000000000);
+	printf("                           %lu Gbps\n", ((packet_count * TX_PACKET_LENGTH * 8) / total_time) / 1000000000);
 	printf("=======================================\n");
 	exit(0);
 }
