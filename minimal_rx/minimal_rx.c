@@ -21,9 +21,12 @@
 #define MBUF_CACHE_SIZE 250
 #define BURST_SIZE 32
 
+void DumpHex(const void*, size_t);
+void rx_packets(void);
+
 static const struct rte_eth_conf port_conf_default = {
 	.rxmode = {
-		.max_rx_pkt_len = ETHER_MAX_LEN,
+		.max_rx_pkt_len = RTE_ETHER_MAX_LEN,
 	},
 };
 
@@ -32,9 +35,9 @@ void DumpHex(const void* data, size_t size) {
 	size_t i, j;
 	ascii[16] = '\0';
 	for (i = 0; i < size; ++i) {
-		printf("%02X ", ((unsigned char*)data)[i]);
-		if (((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
-			ascii[i % 16] = ((unsigned char*)data)[i];
+		printf("%02X ", ((const unsigned char*)data)[i]);
+		if (((const unsigned char*)data)[i] >= ' ' && ((const unsigned char*)data)[i] <= '~') {
+			ascii[i % 16] = ((const unsigned char*)data)[i];
 		} else {
 			ascii[i % 16] = '.';
 		}
@@ -96,7 +99,7 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 		return retval;
 
 	/* Display the port MAC address. */
-	struct ether_addr addr;
+	struct rte_ether_addr addr;
 	rte_eth_macaddr_get(port, &addr);
 	printf("Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8
 			   " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n",
