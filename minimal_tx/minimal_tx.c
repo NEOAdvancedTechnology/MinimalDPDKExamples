@@ -15,6 +15,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
+#include <time.h>
 
 #include <rte_memory.h>
 #include <rte_launch.h>
@@ -68,6 +70,10 @@ struct rte_mempool *mbuf_pool;
 uint32_t string_to_ip(char *);
 uint64_t string_to_mac(char *);
 static void send_packet(void);
+static void exit_stats(int);
+
+static uint64_t packet_count = 0;
+static time_t t1;
 
 // convert a quad-dot IP string to uint32_t IP address
 uint32_t string_to_ip(char *s) {
@@ -192,7 +198,7 @@ static void send_packet(void)
 	// Actually send the packet
 	pkts_burst[0] = pkt;
         const uint16_t nb_tx = rte_eth_tx_burst(0, 0, pkts_burst, 1);
-	printf("Sent %d packet!\n",nb_tx);
+	packet_count += nb_tx;
 }
 
 // Initialize Port
@@ -253,6 +259,19 @@ port_init(uint16_t port)
         return 0;
 }
 
+static void exit_stats(int sig)
+{
+	time_t total_time;
+	total_time = time(NULL) - t1;
+	printf("Caught signal %d\n", sig);
+	printf("\n=============== Stats =================\n");
+	printf("Total packets: %lu\n", packet_count);
+	printf("Total transmission time: %ld seconds\n", total_time);
+	printf("Average transmission rate: %lu pps\n", packet_count / total_time);
+	printf("                           %lu Gpbs\n", ((packet_count * TX_PACKET_LENGTH * 8) / total_time) / 1000000000);
+	printf("=======================================\n");
+	exit(0);
+}
 
 int main(int argc, char **argv)
 {
@@ -266,6 +285,8 @@ int main(int argc, char **argv)
 
 	argc -= ret;
 	argv += ret;
+
+	signal (SIGINT, exit_stats);
 
 	while ((c = getopt(argc, argv, "m:s:d:h")) != -1)
 		switch(c) {
@@ -314,11 +335,16 @@ int main(int argc, char **argv)
 		rte_exit(EXIT_FAILURE, "Cannot init port 0\n");
 
 
+	printf("Sending packets ... [Press Ctrl+C to exit]\n");
+
         pkt_data_len = (uint16_t) (TX_PACKET_LENGTH - (sizeof(struct rte_ether_hdr) +
                                                     sizeof(struct rte_ipv4_hdr) +
                                                     sizeof(struct rte_udp_hdr)));
         setup_pkt_udp_ip_headers(&pkt_ip_hdr, &pkt_udp_hdr, pkt_data_len);
 
-	send_packet();
+	t1 = time(NULL);
+	while (true)
+		send_packet();
+
 	return(0);
 }
