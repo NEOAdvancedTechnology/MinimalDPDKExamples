@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <signal.h>
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_cycles.h>
@@ -23,6 +24,9 @@
 
 void DumpHex(const void*, size_t);
 void rx_packets(void);
+void exit_stats(int);
+
+uint64_t packet_count = 0;
 
 static const struct rte_eth_conf port_conf_default = {
 	.rxmode = {
@@ -134,19 +138,28 @@ void rx_packets(void)
 			if (unlikely(nb_rx == 0))
 				continue;
 
-			printf("received %d packets:\n",nb_rx);
+			packet_count += nb_rx;
+
+			//printf("received %d packets:\n",nb_rx);
 
 			for(i=0;i<nb_rx;++i){
 
-				printf("----->processing packet %d\n",i);
-				printf("----->pkt_len=%d\n",bufs[i]->pkt_len);
-				DumpHex(rte_pktmbuf_mtod(bufs[i],char *),bufs[i]->pkt_len);
+				//printf("----->processing packet %d\n",i);
+				//printf("----->pkt_len=%d\n",bufs[i]->pkt_len);
+				//DumpHex(rte_pktmbuf_mtod(bufs[i],char *),bufs[i]->pkt_len);
 
 				rte_pktmbuf_free(bufs[i]);
 			}
 
 		}
 	}
+}
+
+void exit_stats(int sig)
+{
+	printf("Caught signal %d\n", sig);
+	printf("Total received packets: %lu\n", packet_count);
+	exit(0);
 }
 
 int main(int argc, char *argv[])
@@ -179,6 +192,7 @@ int main(int argc, char *argv[])
 			rte_exit(EXIT_FAILURE, "Cannot init port %"PRIu16 "\n",
 					portid);
 
+	signal(SIGINT, exit_stats);
 	rx_packets();
 
 	return 0;
