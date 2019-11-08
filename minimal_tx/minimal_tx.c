@@ -269,7 +269,7 @@ static void exit_stats(int sig)
 	printf("Total packets: %lu\n", packet_count);
 	printf("Total transmission time: %ld seconds\n", total_time);
 	printf("Average transmission rate: %lu pps\n", packet_count / total_time);
-	printf("                           %lu Gbps\n", ((packet_count * TX_PACKET_LENGTH * 8) / total_time) / 1000000000);
+	printf("                           %lu Mbps\n", ((packet_count * TX_PACKET_LENGTH * 8) / total_time) / 1000000);
 	printf("=======================================\n");
 	exit(0);
 }
@@ -279,7 +279,8 @@ int main(int argc, char **argv)
 	int ret,c;
 	uint16_t pkt_data_len;
 	int mac_flag=0,ip_src_flag=0,ip_dst_flag=0;
-	
+	int counter = 0;
+
 	ret = rte_eal_init(argc, argv);
 	if (ret < 0)
 		rte_panic("Cannot init EAL\n");
@@ -344,8 +345,13 @@ int main(int argc, char **argv)
         setup_pkt_udp_ip_headers(&pkt_ip_hdr, &pkt_udp_hdr, pkt_data_len);
 
 	t1 = time(NULL);
-	while (true)
+	while (true) {
+		counter++;
+		if (counter % 35 == 0) {
+			usleep(1);
+		}
 		send_packet();
+	}
 
 	return(0);
 }
