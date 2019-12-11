@@ -28,6 +28,7 @@ cd dpdk-19.11
 ```
 sudo su
 export RTE_SDK=`pwd`
+export RTE_TARGET=x86_64-native-linuxapp-gcc
 make config install T=x86_64-native-linuxapp-gcc DESTDIR=$RTE_SDK
 ```		
 10. Reserve hugepages:
@@ -105,8 +106,6 @@ Network devices using kernel driver
 ```
 18. Make and run an example:
 ```shell
-export RTE_SDK=/home/ec2-user/dpdk-19.11
-export RTE_TARGET=x86_64-native-linuxapp-gcc
 cd examples/helloworld
 make
 # ./build/helloworld 
