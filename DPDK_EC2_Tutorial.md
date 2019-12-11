@@ -2,7 +2,7 @@
 
 *DPDK is a very large and complex toolkit.  Here is a step-by-step mechanism to get it running on AWS EC2.*
 
-1. For this tutorial, launch an EC2 instance with RHEL AMI, such as Red Hat Enterprise Linux 7.6.  (Other AMIs can work with DPDK, but we'll use RHEL for this tutorial).
+1. For this tutorial, launch an EC2 instance with RHEL AMI, such as Red Hat Enterprise Linux 8.  (Other AMIs can work with DPDK, but we'll use RHEL for this tutorial).
 2. Choose an instance type that supports the Elastic Network Adapter (ENA).  A list is here: <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/enhanced-networking-ena.html>.  For example, c5.9xlarge. If you launch with the right instance type and AMI you don't have to do anything special to enable the ENA.
 3. We will use `eth0` for ssh control of the EC2 instance.  Add at least one additional Network Interface for DPDK.
 4. Configure an appropriate Security Group to let in the traffic you are interested in.
@@ -14,19 +14,22 @@
 6. Now you can ssh into your instance on its new public IP.
 7. Time to get some essentials:
 ```
-sudo -i yum install -y git gcc openssl-devel kernel-devel-$(uname -r) bc numactl-devel make net-tools vim pciutils iproute wget
+sudo -i yum install -y git gcc openssl-devel kernel-devel-$(uname -r) bc numactl-devel make net-tools vim pciutils iproute wget python2
+sudo alternatives --set python /usr/bin/python2
+sudo dnf install elfutils-libelf-devel
 ```
-8. Download DPDK from [https://core.dpdk.org/download/](https://core.dpdk.org/download/).  I suggest 18.11.0 (LTS). For example:
+8. Download DPDK from [https://core.dpdk.org/download/](https://core.dpdk.org/download/).  I suggest 19.11.0 (LTS). For example:
 ```
-wget https://fast.dpdk.org/rel/dpdk-18.11.tar.xz
-tar xf dpdk*.tar.xz
-cd dpdk*
+wget https://fast.dpdk.org/rel/dpdk-19.11.tar.xz
+tar xf dpdk-19.11.tar.xz
+cd dpdk-19.11
 ```		
 9. Assuming you are on x86_64 linux with gcc (otherwise see DPDK documentation):
 ```
 sudo su
 export RTE_SDK=`pwd`
-make config install T=x86_64-native-linuxapp-gcc DESTDIR=$RTE_SDK
+export RTE_TARGET=x86_64-native-linuxapp-gcc
+make config install T=$RTE_TARGET DESTDIR=$RTE_SDK
 ```		
 10. Reserve hugepages:
 ```
@@ -42,7 +45,7 @@ echo "vm.nr_hugepages=1024" >> /etc/sysctl.conf
 type `hugetlbfs` has already been mounted.  You can check this:
 ```
 # cat /proc/mounts | grep hugetlbfs
-hugetlbfs /dev/hugepages hugetlbfs rw,seclabel,relatime 0 0
+hugetlbfs /dev/hugepages hugetlbfs rw,seclabel,relatime,pagesize=2M 0 0
 ```
 If it is not there for some reason, you should mount one:
 ```
@@ -70,8 +73,8 @@ echo "kernel.randomize_va_space=0" >> /etc/sysctl.conf
 ```
 modprobe uio
 modprobe hwmon
-insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko
-insmod x86_64-native-linuxapp-gcc/kmod/rte_kni.ko  	
+insmod ./x86_64-native-linuxapp-gcc/kmod/rte_kni.ko
+insmod ./x86_64-native-linuxapp-gcc/kmod/igb_uio.ko	
 ```
 15. Take down interface(s) you will use with DPDK:
 ```
