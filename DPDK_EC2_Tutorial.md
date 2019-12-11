@@ -45,7 +45,7 @@ echo "vm.nr_hugepages=1024" >> /etc/sysctl.conf
 type `hugetlbfs` has already been mounted.  You can check this:
 ```
 # cat /proc/mounts | grep hugetlbfs
-hugetlbfs /dev/hugepages hugetlbfs rw,seclabel,relatime 0 0
+hugetlbfs /dev/hugepages hugetlbfs rw,seclabel,relatime,pagesize=2M 0 0
 ```
 If it is not there for some reason, you should mount one:
 ```
