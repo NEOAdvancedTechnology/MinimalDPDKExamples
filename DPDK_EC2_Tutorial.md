@@ -72,8 +72,8 @@ echo "kernel.randomize_va_space=0" >> /etc/sysctl.conf
 ```
 modprobe uio
 modprobe hwmon
-insmod ./build/kmod/igb_uio.ko
-insmod ./build/kmod/rte_kni.ko  	
+insmod ./x86_64-native-linuxapp-gcc/kmod/rte_kni.ko
+insmod ./x86_64-native-linuxapp-gcc/kmod/igb_uio.ko	
 ```
 15. Take down interface(s) you will use with DPDK:
 ```
@@ -105,6 +105,8 @@ Network devices using kernel driver
 ```
 18. Make and run an example:
 ```shell
+export RTE_SDK=/home/ec2-user/dpdk-19.11
+export RTE_TARGET=x86_64-native-linuxapp-gcc
 cd examples/helloworld
 make
 # ./build/helloworld 
