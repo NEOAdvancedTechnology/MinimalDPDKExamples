@@ -29,7 +29,7 @@ cd dpdk-19.11
 sudo su
 export RTE_SDK=`pwd`
 export RTE_TARGET=x86_64-native-linuxapp-gcc
-make config install T=x86_64-native-linuxapp-gcc DESTDIR=$RTE_SDK
+make config install T=$RTE_TARGET DESTDIR=$RTE_SDK
 ```		
 10. Reserve hugepages:
 ```
